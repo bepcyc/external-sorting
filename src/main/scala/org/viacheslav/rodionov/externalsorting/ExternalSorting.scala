@@ -8,8 +8,6 @@ import scala.collection.mutable
 import scala.collection.mutable.{Buffer, PriorityQueue}
 
 case class ExternalSorting(inputFile: String, capacity: Int) extends ExternalAccess {
-  //TODO: doc: an iterator over the lines of a file (memory-friendly)
-  //TODO: use buffer
   lazy private val lines: Iterator[String] = fileLines(inputFile)
 
   def readIntoMemory: Iterator[String] = lines take capacity
