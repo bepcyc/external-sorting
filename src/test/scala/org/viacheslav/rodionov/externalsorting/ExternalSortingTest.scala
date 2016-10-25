@@ -1,28 +1,29 @@
 package org.viacheslav.rodionov.externalsorting
 
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 
 import org.scalatest.{Matchers, WordSpec}
-import org.viacheslav.rodionov.ExternalSorting
+import org.viacheslav.rodionov.externalsorting.readers.{FileStringReader, FilesReader}
 
-import scala.Seq
 import scala.collection.mutable
 import scala.util.Random
 
 class ExternalSortingTest extends WordSpec with Matchers {
-  val seed = 2016
+  val seed = 20161025
   val random = new Random(seed)
+
+  def temporaryFile: File = java.io.File.createTempFile("extsorting", ".txt")
 
   "Existing file " should {
     "be read according to its capacity" in {
       val contents: Seq[String] = (1 to 7) map { _ => random.nextInt.toString }
-      val tempFile = java.io.File.createTempFile("extsorting", ".txt")
-      new PrintWriter(tempFile) {
+      val inputFile: File = temporaryFile
+      new PrintWriter(inputFile) {
         write(contents mkString "\n")
         close
       }
       val capacity = 3
-      val sorting = ExternalSorting(tempFile.getAbsolutePath, capacity)
+      val sorting = ExternalSorting(inputFile.getAbsolutePath, capacity)
       val block1: Iterator[String] = sorting.readIntoMemory
       val part1: Seq[String] = contents take capacity
       block1.toSeq shouldBe part1
@@ -42,6 +43,86 @@ class ExternalSortingTest extends WordSpec with Matchers {
       val buffer: mutable.Buffer[String] = list.toBuffer
       import ExternalSorting._
       buffer.memorySort shouldBe listSorted
+    }
+  }
+
+  "Reading lines from a bunch of files" should {
+    "be consistent" in {
+      val contents: List[List[String]] = List(
+        List("aaa", "bbb", "cc"),
+        List(),
+        List("xxx", "yyy")
+      )
+      val tempFiles: List[File] = contents map (x => temporaryFile)
+
+      tempFiles.zip(contents) foreach { case (tempFile, content) =>
+        new PrintWriter(tempFile) {
+          write(content mkString "\n")
+          close
+        }
+      }
+
+      val reader: FilesReader = FilesReader(tempFiles.map(_.getAbsolutePath): _*)
+      reader.readLine() shouldBe Some("aaa")
+      reader.readLine() shouldBe Some("bbb")
+      reader.readLine() shouldBe Some("cc")
+      reader.readLine() shouldBe Some("xxx")
+      reader.readLine() shouldBe Some("yyy")
+      reader.readLine() shouldBe None
+      reader.readLine() shouldBe None
+    }
+  }
+
+  "Corner case for reading zero files" should {
+    "not fail" in {
+      val zeroReader: FilesReader = FilesReader()
+      zeroReader.readLine() shouldBe None
+      zeroReader.readLine() shouldBe None
+      zeroReader.readLine() shouldBe None
+    }
+  }
+
+  "Corner case for merging zero files" should {
+    "should produce empty file" in {
+      val tempFile: File = temporaryFile
+      ExternalSorting merge tempFile.getAbsolutePath
+      scala.io.Source.fromFile(tempFile).getLines shouldBe empty
+    }
+  }
+
+  "Corner case for merging one empty file" should {
+    "produce empty file" in {
+      val inFile: File = temporaryFile
+      val outFile: File = temporaryFile
+      ExternalSorting.merge(outFile.getAbsolutePath, FileStringReader(inFile.getAbsolutePath))
+      scala.io.Source.fromFile(outFile).getLines shouldBe empty
+    }
+  }
+
+  "External sorting" should {
+    "work altogether" in {
+      val contents: Seq[String] = (1 to 100000) map { x =>
+        random
+          .alphanumeric
+          .take(random.nextInt(10) + 1)
+          .mkString
+      }
+      val tempFile: File = temporaryFile
+      new PrintWriter(tempFile) {
+        write(contents mkString "\n")
+        close
+      }
+      val capacity = 300
+      val sorting = ExternalSorting(tempFile.getAbsolutePath, capacity)
+      val blocks: Seq[mutable.Buffer[String]] =
+        0 to Math.ceil(contents.size / capacity).toInt map (_ => sorting.readIntoMemory.toBuffer)
+      import ExternalSorting._
+      val sortedBlocks: Seq[mutable.Buffer[String]] = blocks map (_.memorySort)
+      val tempFiles: Seq[String] = sortedBlocks map (ExternalSorting saveToFile _)
+      val readers: Seq[FileStringReader] = tempFiles map (FileStringReader(_))
+      val outputFile: File = temporaryFile
+      ExternalSorting.merge(outputFile.getAbsolutePath, readers: _*)
+      scala.io.Source.fromFile(outputFile).getLines.toVector shouldBe contents.sorted
     }
   }
 
