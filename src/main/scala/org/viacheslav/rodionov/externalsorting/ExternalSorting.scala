@@ -16,8 +16,7 @@ case class ExternalSorting(inputFile: String, capacity: Int) extends ExternalAcc
 
 object ExternalSorting extends ExternalAccess {
 
-
-  def saveToFile(sortedLines: Buffer[String]): String = {
+  def saveToFile(sortedLines: mutable.Buffer[String]): String = {
     val tempFile = java.io.File.createTempFile("extsrttbl", ".txt")
     new PrintWriter(tempFile) {
       sortedLines foreach { line => write(line + "\n") }
@@ -28,7 +27,7 @@ object ExternalSorting extends ExternalAccess {
 
   def merge(outFilePath: String, readers: FileStringReader*): Unit = {
     implicit val ordering: Ordering[FileStringReader] = FileStringReader.ord
-    val heap: mutable.PriorityQueue[FileStringReader] = PriorityQueue[FileStringReader]()
+    val heap: mutable.PriorityQueue[FileStringReader] = mutable.PriorityQueue[FileStringReader]()
     heap enqueue (readers: _*)
     new PrintWriter(outFilePath) {
       while (heap.nonEmpty) {
@@ -52,9 +51,9 @@ object ExternalSorting extends ExternalAccess {
     }
   }
 
-  implicit class StringBufferOps(values: Buffer[String]) {
+  implicit class StringBufferOps(values: mutable.Buffer[String]) {
 
-    def memorySort: Buffer[String] = values.synchronized {
+    def memorySort: mutable.Buffer[String] = values.synchronized {
       def swapElements(first: Int, second: Int): Unit = {
         val element = values(first)
         values(first) = values(second)
