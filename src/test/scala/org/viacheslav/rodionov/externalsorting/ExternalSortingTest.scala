@@ -6,6 +6,7 @@ import org.scalatest.{Matchers, WordSpec}
 import org.viacheslav.rodionov.externalsorting.readers.{FileStringReader, FilesReader}
 
 import scala.collection.mutable
+import scala.language.postfixOps
 import scala.util.Random
 
 class ExternalSortingTest extends WordSpec with Matchers {
@@ -28,10 +29,10 @@ class ExternalSortingTest extends WordSpec with Matchers {
       val part1: Seq[String] = contents take capacity
       block1.toSeq shouldBe part1
       val block2: Iterator[String] = sorting.readIntoMemory
-      val part2: Seq[String] = contents drop capacity take capacity
+      val part2: Seq[String] = contents.slice(capacity, 2 * capacity)
       block2.toSeq shouldBe part2
       val block3: Iterator[String] = sorting.readIntoMemory
-      val part3: Seq[String] = contents drop 2 * capacity take capacity
+      val part3: Seq[String] = contents.slice(2 * capacity, 3 * capacity)
       block3.toSeq shouldBe part3
     }
   }
@@ -118,7 +119,7 @@ class ExternalSortingTest extends WordSpec with Matchers {
         0 to Math.ceil(contents.size / capacity).toInt map (_ => sorting.readIntoMemory.toBuffer)
       import ExternalSorting._
       val sortedBlocks: Seq[mutable.Buffer[String]] = blocks map (_.memorySort)
-      val tempFiles: Seq[String] = sortedBlocks map (ExternalSorting saveToFile _)
+      val tempFiles: Seq[String] = sortedBlocks map (ExternalSorting saveToFile)
       val readers: Seq[FileStringReader] = tempFiles map (FileStringReader(_))
       val outputFile: File = temporaryFile
       ExternalSorting.merge(outputFile.getAbsolutePath, readers: _*)
