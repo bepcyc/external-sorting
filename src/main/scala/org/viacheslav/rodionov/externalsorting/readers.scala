@@ -1,6 +1,7 @@
 package org.viacheslav.rodionov.externalsorting
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.mutable.Buffer
 
 object readers {
@@ -37,7 +38,7 @@ object readers {
   }
 
   case class FilesReader(filePaths: String*) {
-    private lazy val readers: Buffer[FileStringReader] = filePaths.map(FileStringReader(_)).toBuffer
+    private lazy val readers: mutable.Buffer[FileStringReader] = filePaths.map(FileStringReader(_)).toBuffer
     var lastReader: Option[Int] = if (readers.nonEmpty) Some(0) else None
 
     @tailrec
