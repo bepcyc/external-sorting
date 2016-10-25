@@ -1,5 +1,3 @@
-[![Scrutinizer Coverage](https://img.shields.io/scrutinizer/coverage/g/filp/whoops.svg?style=plastic)]()
-
 External Sorting
 ================
 
