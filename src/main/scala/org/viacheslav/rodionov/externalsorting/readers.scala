@@ -1,5 +1,7 @@
 package org.viacheslav.rodionov.externalsorting
 
+import java.io.File
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.Buffer
@@ -34,7 +36,7 @@ object readers {
       reader.currentHeadOption
     }.reverse
 
-
+    def apply(file: File): FileStringReader = FileStringReader(file.getAbsoluteFile)
   }
 
   case class FilesReader(filePaths: String*) {
