@@ -5,7 +5,7 @@ import java.io.{File, PrintWriter}
 import org.scalatest.{Matchers, WordSpec}
 import org.viacheslav.rodionov.externalsorting.readers.{FileStringReader, FilesReader}
 
-import scala.collection.mutable
+import scala.collection.{SeqView, mutable}
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -86,7 +86,7 @@ class ExternalSortingTest extends WordSpec with Matchers {
   "Corner case for merging zero files" should {
     "should produce empty file" in {
       val tempFile: File = temporaryFile
-      ExternalSorting merge tempFile.getAbsolutePath
+      ExternalSorting merge tempFile
       scala.io.Source.fromFile(tempFile).getLines shouldBe empty
     }
   }
@@ -95,7 +95,7 @@ class ExternalSortingTest extends WordSpec with Matchers {
     "produce empty file" in {
       val inFile: File = temporaryFile
       val outFile: File = temporaryFile
-      ExternalSorting.merge(outFile.getAbsolutePath, FileStringReader(inFile.getAbsolutePath))
+      ExternalSorting.merge(outFile, inFile)
       scala.io.Source.fromFile(outFile).getLines shouldBe empty
     }
   }
@@ -108,7 +108,8 @@ class ExternalSortingTest extends WordSpec with Matchers {
           .take(random.nextInt(10) + 1)
           .mkString
       }
-      val tempFile: File = temporaryFile
+//      val tempFile: File = temporaryFile
+      val tempFile: File = new java.io.File("/tmp/file.txt")
       new PrintWriter(tempFile) {
         write(contents mkString "\n")
         close
@@ -118,11 +119,11 @@ class ExternalSortingTest extends WordSpec with Matchers {
       val blocks: Seq[mutable.Buffer[String]] =
         0 to Math.ceil(contents.size / capacity).toInt map (_ => sorting.readIntoMemory.toBuffer)
       import ExternalSorting._
-      val sortedBlocks: Seq[mutable.Buffer[String]] = blocks map (_.memorySort)
-      val tempFiles: Seq[String] = sortedBlocks map (ExternalSorting saveToFile)
-      val readers: Seq[FileStringReader] = tempFiles map (FileStringReader(_))
+      val sortedBlocks: SeqView[mutable.Buffer[String], Seq[_]] = blocks.view map (_.memorySort)
+      val tempFiles: Seq[Option[File]] = sortedBlocks map (ExternalSorting saveToFile)
+      tempFiles exists (_.isEmpty) shouldBe false
       val outputFile: File = temporaryFile
-      ExternalSorting.merge(outputFile.getAbsolutePath, readers: _*)
+      ExternalSorting.merge(outputFile, tempFiles.map(_.get): _*)
       scala.io.Source.fromFile(outputFile).getLines.toVector shouldBe contents.sorted
     }
   }
