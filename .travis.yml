@@ -4,11 +4,11 @@ cache:
   directories:
     - $HOME/.ivy2
 jdk:
-  - oraclejdk8    
-matrix:
-  include:
-      scala: 2.10.5
+  - oraclejdk8
+scala: 
+  - 2.10.5
 script:
+  - jdk_switcher use oraclejdk8
   - sbt ++$TRAVIS_SCALA_VERSION coverage test
 after_success:
   - bash < (curl -s https://codecov.io/bash)
