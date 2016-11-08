@@ -3,9 +3,10 @@ sudo: false
 cache:
   directories:
     - $HOME/.ivy2
+jdk:
+  - oraclejdk8    
 matrix:
   include:
-    - jdk: oraclejdk8
       scala: 2.10.5
 script:
   - sbt ++$TRAVIS_SCALA_VERSION coverage test
